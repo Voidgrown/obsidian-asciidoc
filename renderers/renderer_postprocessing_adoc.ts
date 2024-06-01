@@ -1,18 +1,12 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext } from 'obsidian';
+// import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext } from 'obsidian';
+import AsciiDoctor from 'asciidoctor';
+const asciidoctor = AsciiDoctor();
 
-
-export function postprocessAdoc(element:HTMLElement, context:MarkdownPostProcessorContext){
+export function postprocessAdoc(element:string){
 	const filePath = this.app.workspace.getActiveFile()?.path ?? '';
+	let html:string = "";
 	if (filePath.endsWith(".adoc") || filePath.endsWith(".asciidoc")){
-		if (element?.textContent) {
-			// TODO: Actually it would appear that this method sucks and I'll have to do my own
-			const asciidoctor = AsciiDoctor();
-			const html:string = asciidoctor.convert(element.textContent) as string;
-			console.log(html);
-			element.innerHTML = html;
-		}
+		html = asciidoctor.convert(element) as string;
 	}
-	else {
-
-	}
+	return html;
 }

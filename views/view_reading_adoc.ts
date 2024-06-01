@@ -1,11 +1,11 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext } from 'obsidian';
-
+import { App, FileView, WorkspaceLeaf, TFile } from 'obsidian';
+import { postprocessAdoc } from '../renderers/renderer_postprocessing_adoc'
 
 export const VIEW_TYPE_ASCDOC_READ = "asciidoc-read-view";
-export class AsciiDocViewRead extends ItemView {
+export class AsciiDocViewRead extends FileView {
+
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
-		// Initialize your view here
 	}
 
 	getViewType() {
@@ -17,35 +17,20 @@ export class AsciiDocViewRead extends ItemView {
 	}
 
 	async onOpen() {
-		const container = this.containerEl.children[1];
-		container.empty();
-		container.createEl("h4", { text: "AsciiDoc Reading View" });
+		let content = "Failed to read file while opening Read View!";
+		if (this.file) {
+			console.debug("onOpen found file {0}".format(this.file.name))
+			content = await this.app.vault.read(this.file);
+		}
+		else {
+			console.debug("onOpen found no file")
+		}
+		const html = postprocessAdoc(content);
+		//this.containerEl.innerHTML = html;
+		this.containerEl.createEl("html", html)
 	}
 
 	async onClose() {
-		// Nothing to clean up.
+        this.containerEl.detach();
 	}
-
-	async activateView() {
-		const { workspace } = this.app;
-
-		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE);
-
-		if (leaves.length > 0) {
-		  // A leaf with our view already exists, use that
-		  leaf = leaves[0];
-		} else {
-		  // Our view could not be found in the workspace, create a new leaf
-		  // in the right sidebar for it
-		  leaf = workspace.getRightLeaf(false);
-		  await leaf.setViewState({ type: VIEW_TYPE_EXAMPLE, active: true });
-		}
-
-		// "Reveal" the leaf in case it is in a collapsed sidebar
-		workspace.revealLeaf(leaf);
-  }
 }
-
-
-

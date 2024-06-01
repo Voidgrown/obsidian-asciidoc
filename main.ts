@@ -1,20 +1,21 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext } from 'obsidian';
-import { AsciiDocViewEdit, VIEW_TYPE_ASCDOC_EDIT } from './views/view_editing_adoc.ts'
-import { AsciiDocViewRead, VIEW_TYPE_ASCDOC_READ } from './views/view_reading_adoc.ts'
-import AsciiDoctor from 'asciidoctor';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext, TFile } from 'obsidian';
+import { AsciiDocViewEdit, VIEW_TYPE_ASCDOC_EDIT } from './views/view_editing_adoc'
+import { AsciiDocViewRead, VIEW_TYPE_ASCDOC_READ } from './views/view_reading_adoc'
 
-// The more mature spelling would be "Asc(iidoc)Obs(idian)", but I am a child
-interface AssCobsPluginSettings {
+
+interface AsciiDocObsidianPluginSettings {
 	adocRenderActive: boolean;
 }
 
-const DEFAULT_SETTINGS: AssCobsPluginSettings = {
+const DEFAULT_SETTINGS: AsciiDocObsidianPluginSettings = {
 	adocRenderActive: true
 }
 
-export default class AssCobsPlugin extends Plugin {
+let app: App;
+
+export default class AsciiDocObsidianPlugin extends Plugin {
 	//#region Main Settings Handling 
-	settings: AssCobsPluginSettings;
+	settings: AsciiDocObsidianPluginSettings;
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
@@ -27,22 +28,16 @@ export default class AssCobsPlugin extends Plugin {
 	async onload() {
 		console.log("Loading plugin Obsidian AsciiDoc. Welcome!");
 
+		app = this.app;
+
 		// loads the data from persistent settings
 		await this.loadSettings();
 
 		// Enable viewing adoc files on the side
 		this.registerExtensions(['adoc', 'asciidoc'], 'markdown');
 		if(this.settings.adocRenderActive){
-			this.registerView(VIEW_TYPE_ASCDOC_READ, (leaf: WorkspaceLeaf) => new AsciiDocView(leaf));
-			this.registerView(VIEW_TYPE_ASCDOC_EDIT, (leaf: WorkspaceLeaf) => new AsciiDocView(leaf));
-
-			// TODO: add an editor (https://docs.obsidian.md/Plugins/Editor/Editor+extensions) handler
-			this.registerEditorExtension;
-
-			// TODO: overwrite existing MD processor with this, if the active file is adoc
-			this.registerMarkdownPostProcessor(async (element, context) => {
-				postprocessAdoc(element, context);
-			});
+			this.registerView(VIEW_TYPE_ASCDOC_READ, (leaf: WorkspaceLeaf) => new AsciiDocViewRead(leaf));
+			this.registerView(VIEW_TYPE_ASCDOC_EDIT, (leaf: WorkspaceLeaf) => new AsciiDocViewEdit(leaf));
 		}
 		else {
 			console.log("Adoc Rendering inactive. Refer to the settings tab to enable adoc rendering.")
@@ -52,24 +47,35 @@ export default class AssCobsPlugin extends Plugin {
 		// TODO: Add command for importing image
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new AssCobsSettingTab(this.app, this));
+		this.addSettingTab(new AsciiDocObsidianSettingTab(this.app, this));
+
+		app.workspace.on('file-open', async (file) => {
+			// Check if the opened file is adoc
+			if (file?.extension === 'adoc' || file?.extension === 'asciidoc') {
+				app.workspace.trigger('file-open', { file, source: 'AsciiDocPlugin' });
+				activateReadView(file);
+			}
+		});
+		
 
 		// DEBUG
-		this.addRibbonIcon("book-open", "Activate READING View", () => { view_reading_adoc.activateView(); });
-		this.addRibbonIcon("pen-line", "Activate EDITING View", () => { view_editing_adoc.activateView(); });
+		this.addRibbonIcon("plug-zap", "DEBUG", () => { console.log("debug"); });
 	}
 
 	onunload() {
 		console.log("Unloading Obsidian AsciiDoc. Goodbye!");
+		app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_READ);
+		app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_EDIT);
+		console.debug("Number of leaves of type ascdoc-read should be 0; is {0}".format(app.workspace.getLeavesOfType(VIEW_TYPE_ASCDOC_READ).length.toString()))
 	}
 	//#endregion
 
 }
 
-class AssCobsSettingTab extends PluginSettingTab {
-	plugin: AssCobsPlugin;
+class AsciiDocObsidianSettingTab extends PluginSettingTab {
+	plugin: AsciiDocObsidianPlugin;
 
-	constructor(app: App, plugin: AssCobsPlugin) {
+	constructor(app: App, plugin: AsciiDocObsidianPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -89,3 +95,30 @@ class AssCobsSettingTab extends PluginSettingTab {
 				}));
 	}
 }
+
+
+// TODO: move or remove from main
+async function activateReadView(file:TFile) {
+	// TODO: I thought this would work, but lets try the tutorial's version and debug from there again
+	//console.debug("Activating read view for file {0}".format(file.name))
+	//const leaf = app.workspace.getLeaf(false);
+	//await leaf!.setViewState({ type: VIEW_TYPE_ASCDOC_READ, active: true });
+	//leaf!.openFile(file);
+
+	const { workspace } = app;
+    let leaf: WorkspaceLeaf | null = null;
+    const leaves = workspace.getLeavesOfType(VIEW_TYPE_ASCDOC_READ);
+
+    if (leaves.length > 0) {
+      // A leaf with our view already exists, use that
+      leaf = leaves[0];
+    } else {
+      // Our view could not be found in the workspace, create a new leaf
+      // in the right sidebar for it
+      leaf = workspace.getLeaf(false);
+      await leaf!.setViewState({ type: VIEW_TYPE_ASCDOC_READ, active: true });
+	  leaf!.openFile(file);
+    }
+    // "Reveal" the leaf in case it is in a collapsed sidebar
+    workspace.revealLeaf(leaf!);
+ }
