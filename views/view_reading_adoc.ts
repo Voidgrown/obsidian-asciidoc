@@ -6,6 +6,7 @@ export class AsciiDocViewRead extends FileView {
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
+		this.file = this.app.workspace.getActiveFile();
 	}
 
 	getViewType() {

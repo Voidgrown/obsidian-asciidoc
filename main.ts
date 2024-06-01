@@ -34,7 +34,7 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 		await this.loadSettings();
 
 		// Enable viewing adoc files on the side
-		this.registerExtensions(['adoc', 'asciidoc'], 'markdown');
+		this.registerExtensions(['adoc', 'asciidoc'], VIEW_TYPE_ASCDOC_READ);
 		if(this.settings.adocRenderActive){
 			this.registerView(VIEW_TYPE_ASCDOC_READ, (leaf: WorkspaceLeaf) => new AsciiDocViewRead(leaf));
 			this.registerView(VIEW_TYPE_ASCDOC_EDIT, (leaf: WorkspaceLeaf) => new AsciiDocViewEdit(leaf));
@@ -52,8 +52,13 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 		app.workspace.on('file-open', async (file) => {
 			// Check if the opened file is adoc
 			if (file?.extension === 'adoc' || file?.extension === 'asciidoc') {
-				app.workspace.trigger('file-open', { file, source: 'AsciiDocPlugin' });
-				activateReadView(file);
+				// This is supposed to intercept fileopen so that Obsidian doesn't do it itself. But it seems to work fine without?
+				//app.workspace.trigger('file-open', { file, source: 'AsciiDocPlugin' });
+
+				console.debug("Activating read view for file {0}".format(file.name))
+				const leaf = app.workspace.getLeaf(false);
+				leaf.setViewState({ type: VIEW_TYPE_ASCDOC_READ, active: true });
+				leaf.openFile(file, {active: true});
 			}
 		});
 		
@@ -95,30 +100,3 @@ class AsciiDocObsidianSettingTab extends PluginSettingTab {
 				}));
 	}
 }
-
-
-// TODO: move or remove from main
-async function activateReadView(file:TFile) {
-	// TODO: I thought this would work, but lets try the tutorial's version and debug from there again
-	//console.debug("Activating read view for file {0}".format(file.name))
-	//const leaf = app.workspace.getLeaf(false);
-	//await leaf!.setViewState({ type: VIEW_TYPE_ASCDOC_READ, active: true });
-	//leaf!.openFile(file);
-
-	const { workspace } = app;
-    let leaf: WorkspaceLeaf | null = null;
-    const leaves = workspace.getLeavesOfType(VIEW_TYPE_ASCDOC_READ);
-
-    if (leaves.length > 0) {
-      // A leaf with our view already exists, use that
-      leaf = leaves[0];
-    } else {
-      // Our view could not be found in the workspace, create a new leaf
-      // in the right sidebar for it
-      leaf = workspace.getLeaf(false);
-      await leaf!.setViewState({ type: VIEW_TYPE_ASCDOC_READ, active: true });
-	  leaf!.openFile(file);
-    }
-    // "Reveal" the leaf in case it is in a collapsed sidebar
-    workspace.revealLeaf(leaf!);
- }
