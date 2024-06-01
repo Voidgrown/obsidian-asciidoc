@@ -57,7 +57,7 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 
 				console.debug("Activating read view for file {0}".format(file.name))
 				const leaf = app.workspace.getLeaf(false);
-				leaf.setViewState({ type: VIEW_TYPE_ASCDOC_READ, active: true });
+				//leaf.setViewState({ type: VIEW_TYPE_ASCDOC_READ, active: true });
 				leaf.openFile(file, {active: true});
 			}
 		});

@@ -1,8 +1,23 @@
-/*
+/* Purple and Yellow CSS */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* Body */
+body {
+    background-color: #362e46;
+    color: #f1f1b9;
+    padding: 5%;
+}
+  
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+color: #f9d71c;
+}
 
-If your plugin does not need CSS, delete this file.
+/* Links */
+a {
+color: #f39e00;
+}
 
-*/
+.container {
+overflow-y: auto; /* Enable vertical scroll */
+max-height: 100%; /* Adjust as needed */
+}

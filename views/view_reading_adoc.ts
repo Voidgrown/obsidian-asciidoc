@@ -17,7 +17,8 @@ export class AsciiDocViewRead extends FileView {
 		return "AsciiDoc Reading View";
 	}
 
-	async onOpen() {
+	//async onOpen() {
+	async onLoadFile(file: TFile): Promise<void> {
 		let content = "Failed to read file while opening Read View!";
 		if (this.file) {
 			console.debug("onOpen found file {0}".format(this.file.name))
@@ -27,8 +28,10 @@ export class AsciiDocViewRead extends FileView {
 			console.debug("onOpen found no file")
 		}
 		const html = postprocessAdoc(content);
-		//this.containerEl.innerHTML = html;
-		this.containerEl.createEl("html", html)
+		this.containerEl.innerHTML = html;
+		// TODO: using createEl seems stylistically correct, but I'm not 100% sure how to implement it.
+		// Beyond that, the CSS I inject seems to apply to Obsidian itself if I use the innerHTML trick :(
+		//this.containerEl.createEl("html", html)
 	}
 
 	async onClose() {
