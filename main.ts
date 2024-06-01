@@ -1,4 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext } from 'obsidian';
+import { AsciiDocViewEdit, VIEW_TYPE_ASCDOC_EDIT } from './views/view_editing_adoc.ts'
+import { AsciiDocViewRead, VIEW_TYPE_ASCDOC_READ } from './views/view_reading_adoc.ts'
 import AsciiDoctor from 'asciidoctor';
 
 // The more mature spelling would be "Asc(iidoc)Obs(idian)", but I am a child
@@ -32,6 +34,7 @@ export default class AssCobsPlugin extends Plugin {
 		this.registerExtensions(['adoc', 'asciidoc'], 'markdown');
 		if(this.settings.adocRenderActive){
 			this.registerView(VIEW_TYPE_ASCDOC_READ, (leaf: WorkspaceLeaf) => new AsciiDocView(leaf));
+			this.registerView(VIEW_TYPE_ASCDOC_EDIT, (leaf: WorkspaceLeaf) => new AsciiDocView(leaf));
 
 			// TODO: add an editor (https://docs.obsidian.md/Plugins/Editor/Editor+extensions) handler
 			this.registerEditorExtension;
@@ -50,6 +53,10 @@ export default class AssCobsPlugin extends Plugin {
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new AssCobsSettingTab(this.app, this));
+
+		// DEBUG
+		this.addRibbonIcon("book-open", "Activate READING View", () => { view_reading_adoc.activateView(); });
+		this.addRibbonIcon("pen-line", "Activate EDITING View", () => { view_editing_adoc.activateView(); });
 	}
 
 	onunload() {
@@ -82,53 +89,3 @@ class AssCobsSettingTab extends PluginSettingTab {
 				}));
 	}
 }
-
-  
-export const VIEW_TYPE_ASCDOC_READ = "asciidoc-read-view";
-class AsciiDocView extends ItemView {  
-	constructor(leaf: WorkspaceLeaf) {
-		super(leaf);
-		// Initialize your view here
-	}
-
-	getViewType() {
-		return VIEW_TYPE_ASCDOC_READ;
-	}
-
-	getDisplayText() {
-		return "AsciiDoc Reading View";
-	}
-
-	async onOpen() {
-		const container = this.containerEl.children[1];
-		container.empty();
-		container.createEl("h4", { text: "AsciiDoc Reading View" });
-	}
-
-	async onClose() {
-		// Nothing to clean up.
-	}
-}
-
-//#region Postprocessing Helpers
-function postprocessAdoc(element:HTMLElement, context:MarkdownPostProcessorContext){
-	const filePath = this.app.workspace.getActiveFile()?.path ?? '';
-	if (filePath.endsWith(".adoc") || filePath.endsWith(".asciidoc")){
-		if (element?.textContent) {
-			const asciidoctor = AsciiDoctor();
-			const html:string = asciidoctor.convert(element.textContent) as string;
-			console.log(html);
-			element.innerHTML = html;
-		}
-	}
-	else {
-
-	}
-}
-//#endregion
-
-//#region Editor Helpers
-function renderHeading(){
-	
-}
-//#endregion
