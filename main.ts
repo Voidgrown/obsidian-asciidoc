@@ -11,8 +11,17 @@ const DEFAULT_SETTINGS: AssCobsPluginSettings = {
 }
 
 export default class AssCobsPlugin extends Plugin {
+	//#region Main Settings Handling 
 	settings: AssCobsPluginSettings;
-
+	async loadSettings() {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	}
+	async saveSettings() {
+		await this.saveData(this.settings);
+	}
+	//#endregion
+	
+	//#region Loadstate Handling 
 	async onload() {
 		console.log("Loading plugin Obsidian AsciiDoc. Welcome!");
 
@@ -45,16 +54,9 @@ export default class AssCobsPlugin extends Plugin {
 
 	onunload() {
 		console.log("Unloading Obsidian AsciiDoc. Goodbye!");
-		this.container.remove();
 	}
+	//#endregion
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
 }
 
 class AssCobsSettingTab extends PluginSettingTab {
@@ -67,7 +69,6 @@ class AssCobsSettingTab extends PluginSettingTab {
 
 	display(): void {
 		const {containerEl} = this;
-
 		containerEl.empty();
 
 		new Setting(containerEl)
@@ -109,13 +110,7 @@ class AsciiDocView extends ItemView {
 	}
 }
 
-
-
-
-
-
-
-
+//#region Postprocessing Helpers
 function postprocessAdoc(element:HTMLElement, context:MarkdownPostProcessorContext){
 	const filePath = this.app.workspace.getActiveFile()?.path ?? '';
 	if (filePath.endsWith(".adoc") || filePath.endsWith(".asciidoc")){
@@ -130,3 +125,10 @@ function postprocessAdoc(element:HTMLElement, context:MarkdownPostProcessorConte
 
 	}
 }
+//#endregion
+
+//#region Editor Helpers
+function renderHeading(){
+	
+}
+//#endregion
