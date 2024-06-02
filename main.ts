@@ -49,7 +49,7 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new AsciiDocObsidianSettingTab(this.app, this));
 
-		app.workspace.on('file-open', async (file) => {
+		const eventRef = app.workspace.on('file-open', async (file) => {
 			// Check if the opened file is adoc
 			if (file?.extension === 'adoc' || file?.extension === 'asciidoc') {
 				// This is supposed to intercept fileopen so that Obsidian doesn't do it itself. But it seems to work fine without?
@@ -61,6 +61,7 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 				leaf.openFile(file, {active: true});
 			}
 		});
+		this.registerEvent(eventRef);
 		
 
 		// DEBUG
@@ -69,8 +70,9 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 
 	onunload() {
 		console.log("Unloading Obsidian AsciiDoc. Goodbye!");
-		app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_READ);
-		app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_EDIT);
+		// nope, antipattern. Leaf should stay where the user put it.
+		//app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_READ);
+		//app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_EDIT);
 		console.debug("Number of leaves of type ascdoc-read should be 0; is {0}".format(app.workspace.getLeavesOfType(VIEW_TYPE_ASCDOC_READ).length.toString()))
 	}
 	//#endregion
