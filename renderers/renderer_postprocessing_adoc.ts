@@ -1,23 +1,10 @@
-// import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext } from 'obsidian';
 import AsciiDoctor from 'asciidoctor';
 const asciidoctor = AsciiDoctor();
 
-export function postprocessAdoc(element:string){
-	const filePath = this.app.workspace.getActiveFile()?.path ?? '';
-	let html:string = "";
-	if (filePath.endsWith(".adoc") || filePath.endsWith(".asciidoc")){
-		html = asciidoctor.convert(element, { safe: 'safe' }) as string;
-	}
-	// TODO: the css injection here is stolen from chatgpt, so replace it aight
-	injectCss(html, "./styles.css").then(injectedHtml => {
-		const container = document.getElementById('asciidoc-container');
-		if (container) container.innerHTML = injectedHtml;
-	  });
-	return html;
+export async function postprocessAdoc(element:string): Promise<DocumentFragment>{
+	// TODO: Figure out a way to do "include" statements properly here. Currently they're just, like,
+	// <a href="settings.adoc" class="bare include">settings.adoc</a>
+	let html = asciidoctor.convert(element, {standalone: false} ) as string;
+    const range = document.createRange();
+    return range.createContextualFragment(html.trim());
 }
-
-async function injectCss(html: string, cssUrl: string): Promise<string> {
-	const response = await fetch(cssUrl);
-	const css = await response.text();
-	return `<style>${css}</style>${html}`;
-  }

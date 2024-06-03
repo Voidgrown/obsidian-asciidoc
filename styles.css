@@ -1,23 +1,14 @@
-/* Purple and Yellow CSS */
-
-/* Body */
-body {
-    background-color: #362e46;
+/*
+.adoc__read * {
+    overflow-y: auto; /* Enable vertical scroll
+    background-color: var(--background-secondary);
     color: #f1f1b9;
-    padding: 5%;
+    padding-left: 1rem;
+    h1, h2, h3, h4, h5, h6 {
+    color: #f9d71c;
+    }
+    a {
+    color: #f39e00;
+    }
 }
-  
-/* Headers */
-h1, h2, h3, h4, h5, h6 {
-color: #f9d71c;
-}
-
-/* Links */
-a {
-color: #f39e00;
-}
-
-.container {
-overflow-y: auto; /* Enable vertical scroll */
-max-height: 100%; /* Adjust as needed */
-}
+*/
