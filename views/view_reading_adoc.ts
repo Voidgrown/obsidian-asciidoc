@@ -14,14 +14,15 @@ export class AsciiDocViewRead extends FileView {
 	}
 
 	getDisplayText() {
-		return "AsciiDoc Reading View";
+		return this.file!.basename;
 	}
 
-	//async onOpen() {
+	// TODO: add an edit button & appropriate edit view
 	async onLoadFile(file: TFile): Promise<void> {
 		console.debug("onOpen found file {0}".format(this.file!.name))
 		const { vault } = this.app;
 
+		// Create body / content
 		let data = await vault.read(file);
 		let modifiedDataDoc = await postprocessAdoc(data);
 		this.contentEl.addClass("adoc__read")
