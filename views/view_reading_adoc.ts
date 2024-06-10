@@ -60,10 +60,9 @@ export class AsciiDocViewRead extends FileView {
 	async postprocessAdoc(element:string): Promise<string> {
 		// do a pre-pass on the html string to enable file transposition
 		let transposedHtml = await this.processIncludes(await this.app.vault.read(this.file!), this.file!.path);
-		const html = asciidoctor.convert(transposedHtml, {standalone: false, safe: "UNSAFE"} ) as string;
-		// TODO: this function should make images viable, 
-		// but that should probably happen elsewhere, otherwise relative paths are gonna be broken
-		//const fragmentsRelinked:DocumentFragment = this.reassignAnchors(?); 
+		let html = asciidoctor.convert(transposedHtml, {standalone: false, safe: "UNSAFE"} ) as string;
+		// TODO: this function should make images viable, but it just... isn't working right now
+		// html = this.spanifyImages(html); 
 		return html;
 	}
 	
@@ -132,15 +131,29 @@ export class AsciiDocViewRead extends FileView {
 				}
 				// replace the match with the file contents of its referate recursively
 				workingFileContents = workingFileContents.replace(
-					match[0], 
+					match[0],
 					await this.processIncludes(subFileContent, includedFilePath)
 				);
 			}
 		}
-
 		return workingFileContents;
 	}
+
+	spanifyImages(html: string): string {
+		// Regular expression to match <img> tags with attributes
+		const imgTagRegex = /<img\b([^>]*)>/gi;
 	
+		// Function to replace <img> with <span>
+		const replaceFunction = (match: string, attributes: string) => {
+			// Extracting src attribute from img tag
+			const srcMatch = /src\s*=\s*"([^"]*)"/i.exec(attributes);
+			const srcAttribute = srcMatch ? `data-src="${srcMatch[1]}"` : '';
+			return `<span class="internal-embed media-embed image-embed is-loaded" ${srcAttribute}></span>`;
+		};
+	
+		// Replace all <img> tags in the input HTML string
+		return html.replace(imgTagRegex, replaceFunction);
+	}
 }
 
 
