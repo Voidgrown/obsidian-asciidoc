@@ -1,6 +1,6 @@
 import { App, FileView, WorkspaceLeaf, TFile, normalizePath } from 'obsidian';
 import AsciiDoctor from 'asciidoctor';
-import { dirname, resolve } from 'path';
+import { join, dirname } from 'path';
 // TODO: I'm also getting that thing again where a VM stays up because I failed to register something for deletion
 
 const asciidoctor = AsciiDoctor();
@@ -39,26 +39,32 @@ export class AsciiDocViewRead extends FileView {
 		// Create body / content
 		let data = await vault.read(file);
 		let modifiedDataDoc = await this.postprocessAdoc(data);
+		let nestedHtml = await this.nestProcessedAdoc(modifiedDataDoc)
 		this.contentEl.addClass("adoc__read")
-		this.contentEl.replaceChildren(modifiedDataDoc);
+		this.contentEl.replaceChildren(nestedHtml);
 	}
 
 	async onClose() {
         // nothin to do
 	}
 
-	async postprocessAdoc(element:string): Promise<HTMLElement> {
-		// do a pre-pass on the html string to enable file transposition
-		const transposedHtml = await this.processIncludes(element, this.file!.path);
-		const html = asciidoctor.convert(transposedHtml, {standalone: false, safe: "UNSAFE"} ) as string;
+	async nestProcessedAdoc(adocHtml:string): Promise<HTMLElement> {
 		// create Document Fragments containing the html string
 		const range = document.createRange();
-		const fragmentsConverted = range.createContextualFragment(html.trim());
+		const fragmentsConverted = range.createContextualFragment(adocHtml.trim());
+		const divNestedRet:HTMLElement = this.buildNestedClassDivs(fragmentsConverted);
 		// TODO: Also add an editable Title (mod-header class, if you're looking for it)
-		// TODO: is this still needed with the transposition directive from earlier?
-		const fragmentsRelinked:DocumentFragment = this.reassignAnchors(fragmentsConverted); 
-		const divNestedRet:HTMLElement = this.buildNestedClassDivs(fragmentsRelinked);
 		return divNestedRet;
+	}
+
+	async postprocessAdoc(element:string): Promise<string> {
+		// do a pre-pass on the html string to enable file transposition
+		let transposedHtml = await this.processIncludes(await this.app.vault.read(this.file!), this.file!.path);
+		const html = asciidoctor.convert(transposedHtml, {standalone: false, safe: "UNSAFE"} ) as string;
+		// TODO: this function should make images viable, 
+		// but that should probably happen elsewhere, otherwise relative paths are gonna be broken
+		//const fragmentsRelinked:DocumentFragment = this.reassignAnchors(?); 
+		return html;
 	}
 	
 	// there are several divs within the "view-content" one that, far as I can tell, add a whole lot of CSS classes. This wraps those around a fragment. 
@@ -84,13 +90,6 @@ export class AsciiDocViewRead extends FileView {
 		return outerDiv;
 	}
 	
-	// file links returned by asciidoctor will point to a nonexistent place, this fixes that up
-	reassignAnchors(fragments:DocumentFragment): DocumentFragment {
-		// TODO
-	
-		return fragments;
-	}
-	
 	// Function to parse the include parameters
 	parseParams = (paramString: string): Record<string, string> => {
 		const params: Record<string, string> = {};
@@ -106,53 +105,40 @@ export class AsciiDocViewRead extends FileView {
 		return params;
 	};
 	// to get recursive includes with absolute paths working (since obviously getAbstractFileByPath requires a full path for some fuckin reason)
-	async processIncludes(html: string, currentFilePath: string): Promise<string> {
-		// Define an async replace function to handle async operations inside the regex replace
-		const asyncReplace = async (str: string, regex: RegExp, asyncFn: Function) => {
-			const matches = [...str.matchAll(regex)];
+	async processIncludes(workingFileContents:string, relativeFilePath:string) :Promise<string> {
+		const { vault } = this.app;
+		const matches = [...workingFileContents.matchAll(includeRegex)];
+		if (matches.length > 0) {
 			for (const match of matches) {
-				const result = await asyncFn(...match, currentFilePath);
-				str = str.replace(match[0], result);
+				let includeParams:IncludeParams = {
+					target: match[1],   // First capturing group ([^\[]+)
+					params: match[2]    // Second capturing group ([^\]]*)
+				};
+				// TODO: Handle Params
+				let params = includeParams.params ? this.parseParams(includeParams.params) : null;
+				let includedFilePath = join(dirname(relativeFilePath), includeParams.target);
+				// path.join returns backslashes on windows for some reason, and obsidian can't read those
+				includedFilePath = includedFilePath.replace(/\\/g,"/");
+				// read out contents of the file referenced in the match
+				let referencedFile:TFile|null;
+				let subFileContent:string;
+				try {
+					referencedFile = vault.getFileByPath(includedFilePath)!;
+					subFileContent = await vault.read(referencedFile);
+				}
+				catch (TypeError){
+					referencedFile = null;
+					subFileContent = `Could not find file '${includedFilePath}'\n`;
+				}
+				// replace the match with the file contents of its referate recursively
+				workingFileContents = workingFileContents.replace(
+					match[0], 
+					await this.processIncludes(subFileContent, includedFilePath)
+				);
 			}
-			return str;
-		};
-	
-		// Perform the async replacement
-		html = await asyncReplace(html, includeRegex, async (match: string, targetPath: string, paramString: string, currentFilePath: string) => {
-			const { vault } = this.app;
-	
-			// Get the directory of the current file
-			const currentFileDir = dirname(currentFilePath);
-	
-			// Resolve the target path relative to the current file's directory
-			targetPath = resolve(currentFileDir, normalizePath(targetPath));
-	
-			// Parse the include parameters
-			const params = this.parseParams(paramString);
-			// TODO: Handle Params
-	
-			// Find the target file using the vault
-			const target = this.app.vault.getAbstractFileByPath(targetPath) as TFile;
-			// If the target is not found or not a file, return the original match
-			if (!target || !(target instanceof TFile)) {
-				console.error(`File not found: ${targetPath}`);
-				return match;
-			}
-	
-			// Read the content of the target file
-			let includedContent: string;
-			try {
-				includedContent = await this.app.vault.read(target);
-			} catch (error) {
-				console.error(error);
-				return match; // If file not found, leave the include directive as is
-			}
-	
-			// Recursively process the included content
-			return await this.processIncludes(includedContent, targetPath);
-		});
-	
-		return html;
+		}
+
+		return workingFileContents;
 	}
 	
 }

@@ -45,6 +45,7 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 
 		// TODO: Add command for importing chapter
 		// TODO: Add command for importing image
+		// TODO: Search integration
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new AsciiDocObsidianSettingTab(this.app, this));
