@@ -32,23 +32,25 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 
 		// loads the data from persistent settings
 		await this.loadSettings();
+		// This adds a settings tab so the user can configure various aspects of the plugin
+		this.addSettingTab(new AsciiDocObsidianSettingTab(this.app, this));
 
-		// Enable viewing adoc files on the side
-		this.registerExtensions(['adoc', 'asciidoc'], VIEW_TYPE_ASCDOC_READ);
-		if(this.settings.adocRenderActive){
-			this.registerView(VIEW_TYPE_ASCDOC_READ, (leaf: WorkspaceLeaf) => new AsciiDocViewRead(leaf));
-			this.registerView(VIEW_TYPE_ASCDOC_EDIT, (leaf: WorkspaceLeaf) => new AsciiDocViewEdit(leaf));
-		}
-		else {
+		if(!this.settings.adocRenderActive){
 			console.log("Adoc Rendering inactive. Refer to the settings tab to enable adoc rendering.")
+			this.registerExtensions(['adoc', 'asciidoc'], "markdown");
+			return
 		}
-
+		else{
+			// Enable viewing adoc files on the side
+			this.registerExtensions(['adoc', 'asciidoc'], VIEW_TYPE_ASCDOC_READ);
+			// TODO: https://docs.obsidian.md/Plugins/Editor/View+plugins
+			//this.registerEditorExtension([AsciiDocObsidianPlugin, PluginValue]);
+		}
+		this.registerView(VIEW_TYPE_ASCDOC_READ, (leaf: WorkspaceLeaf) => new AsciiDocViewRead(leaf));
+		this.registerView(VIEW_TYPE_ASCDOC_EDIT, (leaf: WorkspaceLeaf) => new AsciiDocViewEdit(leaf));
 		// TODO: Add command for importing chapter
 		// TODO: Add command for importing image
 		// TODO: Search integration
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new AsciiDocObsidianSettingTab(this.app, this));
 
 		const eventRef = app.workspace.on('file-open', async (file) => {
 			// Check if the opened file is adoc
