@@ -141,6 +141,7 @@ export class AsciiDocViewRead extends FileView {
 		return workingFileContents;
 	}
 
+	// TODO: SVG
 	// It's inherently impossible here to correctly handle image paths without writing a settings handler from scratch, 
 	// so this searches the vault if it doesn't find anything
 	resolveImagesAsResourcePaths(adocFileContent: string, relativeFilePath: string): string {
