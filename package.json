@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-asciidoc",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Enables the rendering of AsciiDoc in Obsidian.",
 	"main": "main.js",
 	"scripts": {

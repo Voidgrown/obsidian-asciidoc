@@ -1,6 +1,6 @@
 import { App, FileView, WorkspaceLeaf, TFile, normalizePath } from 'obsidian';
 import AsciiDoctor from 'asciidoctor';
-import { join, dirname } from 'path';
+import { join, dirname, basename } from 'path';
 // TODO: I'm also getting that thing again where a VM stays up because I failed to register something for deletion
 
 const asciidoctor = AsciiDoctor();
@@ -60,9 +60,8 @@ export class AsciiDocViewRead extends FileView {
 	async postprocessAdoc(element:string): Promise<string> {
 		// do a pre-pass on the html string to enable file transposition
 		let transposedHtml = await this.processIncludes(await this.app.vault.read(this.file!), this.file!.path);
+		// todo: hit asciidoc over the knuckles for trying to mess with my image tags
 		let html = asciidoctor.convert(transposedHtml, {standalone: false, safe: "UNSAFE"} ) as string;
-		// TODO: this function should make images viable, but it just... isn't working right now
-		// html = this.spanifyImages(html); 
 		return html;
 	}
 	
@@ -129,6 +128,9 @@ export class AsciiDocViewRead extends FileView {
 					referencedFile = null;
 					subFileContent = `Could not find file '${includedFilePath}'\n`;
 				}
+
+				workingFileContents = this.resolveImagesAsResourcePaths(workingFileContents, dirname(relativeFilePath))
+
 				// replace the match with the file contents of its referate recursively
 				workingFileContents = workingFileContents.replace(
 					match[0],
@@ -139,20 +141,39 @@ export class AsciiDocViewRead extends FileView {
 		return workingFileContents;
 	}
 
-	spanifyImages(html: string): string {
-		// Regular expression to match <img> tags with attributes
-		const imgTagRegex = /<img\b([^>]*)>/gi;
-	
-		// Function to replace <img> with <span>
-		const replaceFunction = (match: string, attributes: string) => {
-			// Extracting src attribute from img tag
-			const srcMatch = /src\s*=\s*"([^"]*)"/i.exec(attributes);
-			const srcAttribute = srcMatch ? `data-src="${srcMatch[1]}"` : '';
-			return `<span class="internal-embed media-embed image-embed is-loaded" ${srcAttribute}></span>`;
-		};
-	
-		// Replace all <img> tags in the input HTML string
-		return html.replace(imgTagRegex, replaceFunction);
+	// It's inherently impossible here to correctly handle image paths without writing a settings handler from scratch, 
+	// so this searches the vault if it doesn't find anything
+	resolveImagesAsResourcePaths(adocFileContent: string, relativeFilePath: string): string {
+		const imageRegex = /(image::?)([^\[]+)(\[.*?\])/g;
+		const matches = [...adocFileContent.matchAll(imageRegex)];
+		//console.debug(matches.length);
+		matches.forEach(match => {
+
+			let vaultAbsPath:string;
+			if(match[2].startsWith('.')){
+				vaultAbsPath = join(relativeFilePath, match[2]).replace(/\\/g,"/"); 
+			}
+			else {
+				vaultAbsPath = match[2].replace(/\\/g,"/"); 
+			}
+			let file = this.app.vault.getFileByPath(vaultAbsPath);
+			if (!file){
+				let allFiles = this.app.vault.getFiles();
+				allFiles.forEach(vaultFile => {
+					if (vaultFile.name == basename(vaultAbsPath)) {
+						file = vaultFile;
+					}
+				});
+			}
+			let resourcePath:string = vaultAbsPath;
+			if (file) {
+				resourcePath = this.app.vault.getResourcePath(file);
+			}
+			let fullReplacement = match[1]+resourcePath+match[3]
+			adocFileContent = adocFileContent.replace(match[0], fullReplacement);
+		});
+		//console.debug(adocFileContent);
+		return adocFileContent;
 	}
 }
 
