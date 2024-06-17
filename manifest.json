@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-asciidoc",
-	"name": "Obsidian Asciidoc",
+	"id": "asciidoc-reader",
+	"name": "Asciidoc Reader",
 	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "Enables the rendering of AsciiDoc in Obsidian.",
+	"description": "Enables the rendering of AsciiDoc.",
 	"author": "voidgrown",
 	"authorUrl": "http://www.voidgrown.com/",
 	"fundingUrl": "",

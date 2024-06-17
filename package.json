@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-asciidoc",
+	"name": "asciidoc-reader",
 	"version": "0.1.0",
-	"description": "Enables the rendering of AsciiDoc in Obsidian.",
+	"description": "Enables the rendering of AsciiDoc.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
