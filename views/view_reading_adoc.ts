@@ -1,7 +1,6 @@
 import { App, FileView, WorkspaceLeaf, TFile, normalizePath } from 'obsidian';
 import AsciiDoctor from 'asciidoctor';
 import { join, dirname, basename } from 'path';
-// TODO: I'm also getting that thing again where a VM stays up because I failed to register something for deletion
 
 const asciidoctor = AsciiDoctor();
 const includeRegex = /include::([^\[]+)\[([^\]]*)\]/g;
@@ -52,7 +51,10 @@ export class AsciiDocViewRead extends FileView {
 		// create Document Fragments containing the html string
 		const range = document.createRange();
 		const fragmentsConverted = range.createContextualFragment(adocHtml.trim());
-		const divNestedRet:HTMLElement = this.buildNestedClassDivs(fragmentsConverted);
+		const divNestedRet = document.createElement('div');
+		const divsTitle:DocumentFragment = this.buildTitleDivs(fragmentsConverted, this.file!);
+		const divsContent:DocumentFragment = this.buildNestedClassDivs(divsTitle);
+		divNestedRet.appendChild(divsContent);
 		// TODO: Also add an editable Title (mod-header class, if you're looking for it)
 		return divNestedRet;
 	}
@@ -60,33 +62,89 @@ export class AsciiDocViewRead extends FileView {
 	async postprocessAdoc(element:string): Promise<string> {
 		// do a pre-pass on the html string to enable file transposition
 		let transposedHtml = await this.processIncludes(await this.app.vault.read(this.file!), this.file!.path);
-		// todo: hit asciidoc over the knuckles for trying to mess with my image tags
 		let html = asciidoctor.convert(transposedHtml, {standalone: false, safe: "UNSAFE"} ) as string;
 		return html;
 	}
 	
 	// there are several divs within the "view-content" one that, far as I can tell, add a whole lot of CSS classes. This wraps those around a fragment. 
-	buildNestedClassDivs(fragments:DocumentFragment): HTMLElement {
-		// this is clearly not the most elegant way of doing things, but I'm not an elegant person
+	buildNestedClassDivs(fragments: DocumentFragment): DocumentFragment {
+		// Create a new DocumentFragment
+		const docFragment = document.createDocumentFragment();
+		
+		// Define the list of class names for each nested div
 		const classesList = [
-			[ "markdown-reading-view"],
-			[ "markdown-preview-view", "markdown-rendered", "node-insert-event", "is-readable-line-width", "allow-fold-headings", "show-indentation-guide", "allow-fold-lists", "show-properties"],
-			[ "markdown-preview-sizer", "markdown-preview-section"],
-		  ];
-	
+			["markdown-reading-view"],
+			[
+				"markdown-preview-view", "markdown-rendered", "node-insert-event", 
+				"is-readable-line-width", "allow-fold-headings", 
+				"show-indentation-guide", "allow-fold-lists", "show-properties"
+			],
+			["markdown-preview-sizer", "markdown-preview-section"],
+		];
+		
+		// Create the outermost div
 		let outerDiv = document.createElement('div');
 		let currentDiv = outerDiv;
-	  
+		
+		// Loop through the classesList to add classes and create nested divs
 		classesList.forEach(classes => {
-		  classes.forEach(className => currentDiv.classList.add(className));
-		  const innerDiv = document.createElement('div');
-		  currentDiv.appendChild(innerDiv);
-		  currentDiv = innerDiv;
+			classes.forEach(className => currentDiv.classList.add(className));
+			const innerDiv = document.createElement('div');
+			currentDiv.appendChild(innerDiv);
+			currentDiv = innerDiv;
 		});
-	  
+		
+		// Append the passed fragments to the innermost div
 		currentDiv.appendChild(fragments);
-		return outerDiv;
+		// Append the outermost div to the DocumentFragment
+		docFragment.appendChild(outerDiv);
+		// Return the DocumentFragment
+		return docFragment;
 	}
+
+	buildTitleDivs(fragments: DocumentFragment, file: TFile): DocumentFragment {
+		// Create a new DocumentFragment
+		const docFragment = document.createDocumentFragment();
+		
+		// Create the outer div with class "mod-header"
+		const modHeaderDiv = document.createElement('div');
+		modHeaderDiv.classList.add('mod-header');
+		
+		// Create the inner div with the specified attributes and classes
+		const inlineTitleDiv = document.createElement('div');
+		inlineTitleDiv.classList.add('inline-title');
+		inlineTitleDiv.setAttribute('contenteditable', 'true');
+		inlineTitleDiv.setAttribute('autocapitalize', 'on');
+		inlineTitleDiv.setAttribute('tabindex', '-1');
+		inlineTitleDiv.setAttribute('enterkeyhint', 'done');
+		inlineTitleDiv.textContent = this.file!.basename;
+		
+		// Append the inner div to the outer div
+		modHeaderDiv.appendChild(inlineTitleDiv);
+		// Append the outer div to the DocumentFragment
+		docFragment.appendChild(modHeaderDiv);
+		// Append the original fragments to the DocumentFragment
+		docFragment.appendChild(fragments);
+	
+		// Add an event listener to handle renaming the file when "Enter" is pressed
+		inlineTitleDiv.addEventListener('keydown', async (event) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				const newTitle = inlineTitleDiv.textContent;
+				if (newTitle && newTitle !== file.basename) {
+					const fileExtension = file.extension;
+					const newPath = file.path.replace(/[^/]*$/, newTitle + '.' + fileExtension);
+					await this.app.fileManager.renameFile(file, newPath);
+				}
+				inlineTitleDiv.blur(); // Remove focus from the title div
+			}
+		});
+		
+		// Return the DocumentFragment
+		return docFragment;
+	}
+	
+	
 	
 	// Function to parse the include parameters
 	parseParams = (paramString: string): Record<string, string> => {
@@ -141,18 +199,29 @@ export class AsciiDocViewRead extends FileView {
 		return workingFileContents;
 	}
 
-	// TODO: SVG
 	// It's inherently impossible here to correctly handle image paths without writing a settings handler from scratch, 
 	// so this searches the vault if it doesn't find anything
 	resolveImagesAsResourcePaths(adocFileContent: string, relativeFilePath: string): string {
 		const imageRegex = /(image::?)([^\[]+)(\[.*?\])/g;
-		const matches = [...adocFileContent.matchAll(imageRegex)];
+		adocFileContent = this.resolveFilesAsResourcePath(adocFileContent, relativeFilePath, imageRegex, 2);
+		return adocFileContent;
+	}
+
+	resolveFilesAsResourcePath(
+		adocFileContent: string, 
+		// path of whatever file is being processed at that moment (not to be confused with the active file)
+		relativeFilePath: string, 
+		// expression matching against what you want to resolve as a resource path, e.g. `/(image::?)([^\[]+)(\[.*?\])/g`
+		regex: RegExp,
+		// which capturing group to replace with a resource link
+		positionToReplace: number,
+	): string {
+		const matches = [...adocFileContent.matchAll(regex)];
 		//console.debug(matches.length);
 		matches.forEach(match => {
-
 			let vaultAbsPath:string;
-			if(match[2].startsWith('.')){
-				vaultAbsPath = join(relativeFilePath, match[2]).replace(/\\/g,"/"); 
+			if(match[positionToReplace].startsWith('.')){
+				vaultAbsPath = join(relativeFilePath, match[positionToReplace]).replace(/\\/g,"/"); 
 			}
 			else {
 				vaultAbsPath = match[2].replace(/\\/g,"/"); 
@@ -170,7 +239,19 @@ export class AsciiDocViewRead extends FileView {
 			if (file) {
 				resourcePath = this.app.vault.getResourcePath(file);
 			}
-			let fullReplacement = match[1]+resourcePath+match[3]
+			let fullReplacement = "";
+			match.forEach((matchingGroup, index) => {
+				if (index === 0) {
+					return; // Skip the first element, since it's the full match
+				}
+				if (matchingGroup != match[positionToReplace]) {
+					fullReplacement += matchingGroup;
+				} else {
+					fullReplacement += resourcePath;
+				}
+			});
+			
+			fullReplacement = match[1]+resourcePath+match[3]
 			adocFileContent = adocFileContent.replace(match[0], fullReplacement);
 		});
 		//console.debug(adocFileContent);
