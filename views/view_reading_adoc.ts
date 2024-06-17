@@ -174,7 +174,7 @@ export class AsciiDocViewRead extends FileView {
 				let params = includeParams.params ? this.parseParams(includeParams.params) : null;
 				let includedFilePath = join(dirname(relativeFilePath), includeParams.target);
 				// path.join returns backslashes on windows for some reason, and obsidian can't read those
-				includedFilePath = includedFilePath.replace(/\\/g,"/");
+				includedFilePath = normalizePath(includedFilePath);
 				// read out contents of the file referenced in the match
 				let referencedFile:TFile|null;
 				let subFileContent:string;
@@ -220,10 +220,10 @@ export class AsciiDocViewRead extends FileView {
 		matches.forEach(match => {
 			let vaultAbsPath:string;
 			if(match[positionToReplace].startsWith('.')){
-				vaultAbsPath = join(relativeFilePath, match[positionToReplace]).replace(/\\/g,"/"); 
+				vaultAbsPath = normalizePath(join(relativeFilePath, match[positionToReplace])); 
 			}
 			else {
-				vaultAbsPath = match[2].replace(/\\/g,"/"); 
+				vaultAbsPath = normalizePath(match[2]); 
 			}
 			let file = this.app.vault.getFileByPath(vaultAbsPath);
 			if (!file){
