@@ -26,8 +26,6 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 	
 	//#region Loadstate Handling 
 	async onload() {
-		console.log("Loading plugin Obsidian AsciiDoc. Welcome!");
-
 		app = this.app;
 
 		// loads the data from persistent settings
@@ -36,7 +34,6 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 		this.addSettingTab(new AsciiDocObsidianSettingTab(this.app, this));
 
 		if(!this.settings.adocRenderActive){
-			console.log("Adoc Rendering inactive. Refer to the settings tab to enable adoc rendering.")
 			this.registerExtensions(['adoc', 'asciidoc'], "markdown");
 			return
 		}
@@ -55,21 +52,15 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 		const eventRef = app.workspace.on('file-open', async (file) => {
 			// Check if the opened file is adoc
 			if (file?.extension === 'adoc' || file?.extension === 'asciidoc') {
-				console.debug("Activating read view for file {0}".format(file.name))
 				const leaf = app.workspace.getLeaf(false);
 				//leaf.setViewState({ type: VIEW_TYPE_ASCDOC_READ, active: true });
 				leaf.openFile(file, {active: true});
 			}
 		});
 		this.registerEvent(eventRef);
-		
-
-		// DEBUG
-		this.addRibbonIcon("plug-zap", "DEBUG", () => { console.log("debug"); });
 	}
 
 	onunload() {
-		console.log("Unloading Obsidian AsciiDoc. Goodbye!");
 		// nope, antipattern. Leaf should stay where the user put it.
 		//app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_READ);
 		//app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_EDIT);

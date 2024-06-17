@@ -217,7 +217,6 @@ export class AsciiDocViewRead extends FileView {
 		positionToReplace: number,
 	): string {
 		const matches = [...adocFileContent.matchAll(regex)];
-		//console.debug(matches.length);
 		matches.forEach(match => {
 			let vaultAbsPath:string;
 			if(match[positionToReplace].startsWith('.')){
@@ -254,7 +253,6 @@ export class AsciiDocViewRead extends FileView {
 			fullReplacement = match[1]+resourcePath+match[3]
 			adocFileContent = adocFileContent.replace(match[0], fullReplacement);
 		});
-		//console.debug(adocFileContent);
 		return adocFileContent;
 	}
 }
