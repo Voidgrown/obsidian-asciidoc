@@ -5,7 +5,7 @@
 	"minAppVersion": "0.15.0",
 	"description": "Enables the rendering of AsciiDoc in Obsidian.",
 	"author": "voidgrown",
-	"authorUrl": "https://http://voidgrown.com/",
+	"authorUrl": "http://www.voidgrown.com/",
 	"fundingUrl": "",
 	"isDesktopOnly": false
 }
