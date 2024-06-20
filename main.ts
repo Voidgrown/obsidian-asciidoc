@@ -1,5 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext, TFile } from 'obsidian';
-import { AsciiDocViewEdit, VIEW_TYPE_ASCDOC_EDIT } from './views/view_editing_adoc'
+// TODO: Is this gonna be necessary?
+//import { AsciiDocViewEdit, VIEW_TYPE_ASCDOC_EDIT } from './views/view_editing_adoc'
+import { AsciiDocEditorPlugin } from './views/view_editing_adoc'
 import { AsciiDocViewRead, VIEW_TYPE_ASCDOC_READ } from './views/view_reading_adoc'
 
 
@@ -41,10 +43,11 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 			// Enable viewing adoc files on the side
 			this.registerExtensions(['adoc', 'asciidoc'], VIEW_TYPE_ASCDOC_READ);
 			// TODO: https://docs.obsidian.md/Plugins/Editor/View+plugins
-			//this.registerEditorExtension([AsciiDocObsidianPlugin, PluginValue]);
+			this.registerEditorExtension([AsciiDocObsidianPlugin, AsciiDocEditorPlugin]);
 		}
 		this.registerView(VIEW_TYPE_ASCDOC_READ, (leaf: WorkspaceLeaf) => new AsciiDocViewRead(leaf));
-		this.registerView(VIEW_TYPE_ASCDOC_EDIT, (leaf: WorkspaceLeaf) => new AsciiDocViewEdit(leaf));
+		// TODO: Editview necessity?
+		//this.registerView(VIEW_TYPE_ASCDOC_EDIT, (leaf: WorkspaceLeaf) => new AsciiDocViewEdit(leaf));
 		// TODO: Add command for importing chapter
 		// TODO: Add command for importing image
 		// TODO: Search integration
