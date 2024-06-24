@@ -82,7 +82,8 @@ class AsciiDocObsidianSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Enable AsciiDoc Rendering')
+			// AsciiDoc is capitalized this way originally
+			.setName('Enable AsciiDoc rendering')
 			.setDesc('When disabled, this will display your adoc files as raw Obsidian would try to. Files will remain visible in the explorer.')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.adocRenderActive)

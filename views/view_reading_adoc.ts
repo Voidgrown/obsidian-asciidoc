@@ -62,7 +62,7 @@ export class AsciiDocViewRead extends FileView {
 	async postprocessAdoc(element:string): Promise<string> {
 		// do a pre-pass on the html string to enable file transposition
 		let transposedHtml = await this.processIncludes(await this.app.vault.read(this.file!), this.file!.path);
-		let html = asciidoctor.convert(transposedHtml, {standalone: false, safe: "UNSAFE"} ) as string;
+		let html = asciidoctor.convert(transposedHtml, {standalone: false, safe: "SAFE"} ) as string;
 		return html;
 	}
 	
