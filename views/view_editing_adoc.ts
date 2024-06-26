@@ -1,30 +1,52 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, EditableFileView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext } from 'obsidian';
+import {
+	ViewUpdate,
+	PluginValue,
+	EditorView,
+	ViewPlugin,
+  } from "@codemirror/view";
 
-
-export const VIEW_TYPE_ASCDOC_EDIT = "asciidoc-edit-view";
-export class AsciiDocViewEdit extends EditableFileView {
-	constructor(leaf: WorkspaceLeaf) {
-		super(leaf);
-		// Initialize your view here
+class AsciiDocEditorPlugin implements PluginValue {
+	constructor(view: EditorView) {
+	// initializes the plugin
 	}
 
-	getViewType() {
-		return VIEW_TYPE_ASCDOC_EDIT;
+	update(update: ViewUpdate) {
+	// updates your plugin when something has changed, for example when the user entered or selected some text.
 	}
 
-	getDisplayText() {
-		return "AsciiDoc Edit View";
+	destroy() {
+	// cleans up after the plugin
 	}
-
-	async onOpen() {
-		const container = this.containerEl.children[1];
-		container.empty();
-		container.createEl("h1", { text: "AsciiDoc Edit View" });
-	}
-
-	async onClose() {
-		// Nothing to clean up.
-	}
-
 }
+
+export const examplePlugin = ViewPlugin.fromClass(AsciiDocEditorPlugin);
+
+
+// TODO: Let's see if this is still needed once I've implemented a basic view plugin
+//export const VIEW_TYPE_ASCDOC_EDIT = "asciidoc-edit-view";
+//export class AsciiDocViewEdit extends EditableFileView {
+//	constructor(leaf: WorkspaceLeaf) {
+//		super(leaf);
+//		// Initialize your view here
+//	}
+//
+//	getViewType() {
+//		return VIEW_TYPE_ASCDOC_EDIT;
+//	}
+//
+//	getDisplayText() {
+//		return "AsciiDoc Edit View";
+//	}
+//
+//	async onOpen() {
+//		const container = this.containerEl.children[1];
+//		container.empty();
+//		container.createEl("h1", { text: "AsciiDoc Edit View" });
+//	}
+//
+//	async onClose() {
+//		// Nothing to clean up.
+//	}
+//
+//}
 
