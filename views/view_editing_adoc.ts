@@ -6,16 +6,39 @@ import {
   } from "@codemirror/view";
 
 class AsciiDocEditorPlugin implements PluginValue {
+
+	// Editor in default markdown has class:
+	// markdown-source-view cm-s-obsidian mod-cm6 node-insert-event is-readable-line-width is-live-preview is-folding show-properties
+	// down to 
+	// cm-contentContainer
+	// see https://codemirror.net/docs/guide/#viewport
+
 	constructor(view: EditorView) {
 	// initializes the plugin
+
+		// boilerplate copybaste
+		this.dom = view.dom.appendChild(document.createElement("div"))
+		this.dom.style.cssText =
+		  "position: absolute; inset-block-start: 2px; inset-inline-end: 5px"
+		this.dom.textContent = view.state.doc.length
+
 	}
 
 	update(update: ViewUpdate) {
 	// updates your plugin when something has changed, for example when the user entered or selected some text.
+
+		// boilerplate copybaste
+		if (update.docChanged)
+			this.dom.textContent = update.state.doc.length
+
 	}
 
 	destroy() {
 	// cleans up after the plugin
+		
+		// boilerplate copybaste
+		this.dom.remove()
+
 	}
 }
 
