@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext, TFile } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownRenderer, MarkdownPostProcessorContext, TFile, setIcon, addIcon } from 'obsidian';
 // TODO: Is this gonna be necessary?
 //import { AsciiDocViewEdit, VIEW_TYPE_ASCDOC_EDIT } from './views/view_editing_adoc'
 import { AsciiDocEditorPlugin } from './views/view_editing_adoc'
@@ -43,7 +43,7 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 			// Enable viewing adoc files on the side
 			this.registerExtensions(['adoc', 'asciidoc'], VIEW_TYPE_ASCDOC_READ);
 			// TODO: https://docs.obsidian.md/Plugins/Editor/View+plugins
-			this.registerEditorExtension([AsciiDocObsidianPlugin, AsciiDocEditorPlugin]);
+			//this.registerEditorExtension([AsciiDocObsidianPlugin, AsciiDocEditorPlugin]);
 		}
 		this.registerView(VIEW_TYPE_ASCDOC_READ, (leaf: WorkspaceLeaf) => new AsciiDocViewRead(leaf));
 		// TODO: Editview necessity?
@@ -51,6 +51,15 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 		// TODO: Add command for importing chapter
 		// TODO: Add command for importing image
 		// TODO: Search integration
+
+		// Register the command to switch views
+		this.registerEvent(
+			this.app.workspace.on('active-leaf-change', () => {
+				this.addViewToggleAction();
+			})
+		);
+		// Add the view toggle action when the plugin loads
+		this.addViewToggleAction();
 
 		const eventRef = app.workspace.on('file-open', async (file) => {
 			// Check if the opened file is adoc
@@ -69,6 +78,32 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 		//app.workspace.detachLeavesOfType(VIEW_TYPE_ASCDOC_EDIT);
 	}
 	//#endregion
+
+	addViewToggleAction() {
+		const view = this.app.workspace.getActiveViewOfType(AsciiDocViewRead);
+  
+		if (view) {
+			const viewActions = view.containerEl.querySelector('.view-actions');
+			console.debug(viewActions);
+			if (viewActions && !viewActions.querySelector('.view-action-toggle')) {
+				
+				const button = document.createElement('button');
+				button.className = 'clickable-icon view-action';
+				setIcon(button, "pencil-line");
+				button.onclick = () => this.switchToEditView(view);
+				
+				viewActions.appendChild(button);
+			}
+		}
+	}
+	
+	switchToEditView(view: AsciiDocViewRead) {
+		const leaf = view.leaf;
+		leaf.setViewState({
+		  type: 'markdown',
+		  state: view.getState(),
+		});
+	  }
 
 }
 

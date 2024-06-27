@@ -41,6 +41,7 @@ export class AsciiDocViewRead extends FileView {
 		let nestedHtml = await this.nestProcessedAdoc(modifiedDataDoc)
 		this.contentEl.addClass("adoc__read")
 		this.contentEl.replaceChildren(nestedHtml);
+
 	}
 
 	async onClose() {
