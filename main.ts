@@ -98,6 +98,7 @@ export default class AsciiDocObsidianPlugin extends Plugin {
 	}
 	
 	switchToEditView(view: AsciiDocViewRead) {
+		// TODO: right now that button just switches to a nonexistent file
 		const leaf = view.leaf;
 		leaf.setViewState({
 		  type: 'markdown',
